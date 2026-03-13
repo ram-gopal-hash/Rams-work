@@ -88,7 +88,7 @@ create_result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "create", notebook_name, "--json"],
     check=True, capture_output=True, text=True
 )
-notebook_id = json.loads(create_result.stdout).get("id", notebook_name)
+notebook_id = json.loads(create_result.stdout).get("notebook", {}).get("id", notebook_name)
 print(f"Notebook ID: {notebook_id}")
 time.sleep(3)
 
