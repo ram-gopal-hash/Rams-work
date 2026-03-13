@@ -5,6 +5,7 @@ Run this locally after: notebooklm login
 Usage: python claude-code-skills-notebooklm.py "your topic here"
 Requires: export YOUTUBE_API_KEY="your_key_here"
 """
+import re
 import subprocess
 import json
 import time
@@ -61,6 +62,12 @@ for item in stats_data.get("items", []):
     duration = item.get("contentDetails", {}).get("duration", "")
     lang = snippet.get("defaultAudioLanguage", snippet.get("defaultLanguage", "en"))
     if lang and not lang.startswith("en"):
+        continue
+    # Skip YouTube Shorts (duration under 2 minutes)
+    h = int((re.search(r'(\d+)H', duration) or re.search(r'(0)', '0')).group(1))
+    m = int((re.search(r'(\d+)M', duration) or re.search(r'(0)', '0')).group(1))
+    s = int((re.search(r'(\d+)S', duration) or re.search(r'(0)', '0')).group(1))
+    if h * 3600 + m * 60 + s < 120:
         continue
     videos.append({
         "title": snippet.get("title", ""),
@@ -138,23 +145,27 @@ else:
 
 # Step 5: Generate infographic
 print("\nGenerating sketch-note style infographic...")
-subprocess.run(
+gen_result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "generate", "infographic",
      "-n", notebook_id,
      "--style", "sketch-note",
-     "--wait"],
-    check=True
+     "--wait",
+     "--retry", "3"],
 )
 
 # Step 6: Download the infographic
-print("\nDownloading infographic...")
 safe_topic = topic.replace(" ", "-").lower()
 output_path = f"./{safe_topic}-infographic.png"
-subprocess.run(
-    [sys.executable, "-m", "notebooklm", "download", "infographic",
-     "-n", notebook_id,
-     output_path],
-    check=True
-)
-
-print(f"\nDone! Infographic saved to {output_path}")
+if gen_result.returncode != 0:
+    print(f"\nWarning: Infographic generation failed (possibly rate limited). Try again later with:")
+    print(f"  python -m notebooklm generate infographic -n {notebook_id} --style sketch-note --wait --retry 3")
+    print(f"  python -m notebooklm download infographic -n {notebook_id} {output_path}")
+else:
+    print("\nDownloading infographic...")
+    subprocess.run(
+        [sys.executable, "-m", "notebooklm", "download", "infographic",
+         "-n", notebook_id,
+         output_path],
+        check=True
+    )
+    print(f"\nDone! Infographic saved to {output_path}")
