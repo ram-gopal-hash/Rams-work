@@ -74,7 +74,9 @@ print("\nAdding videos as sources...")
 for v in videos:
     if v["url"]:
         print(f"  Adding: {v['title']}")
-        subprocess.run(["notebooklm", "source", "add", v["url"]], check=True)
+        result = subprocess.run(["notebooklm", "source", "add", v["url"]])
+        if result.returncode != 0:
+            print(f"  Skipping (failed to add): {v['url']}")
         time.sleep(1)
 
 # Step 4: Ask for analysis
