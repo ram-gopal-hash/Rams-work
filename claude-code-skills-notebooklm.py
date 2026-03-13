@@ -13,6 +13,9 @@ import sys
 import urllib.request
 import urllib.parse
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 if len(sys.argv) < 2:
     raise SystemExit("Usage: python claude-code-skills-notebooklm.py \"your topic here\"")
