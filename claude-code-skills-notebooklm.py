@@ -11,6 +11,7 @@ import os
 import sys
 import urllib.request
 import urllib.parse
+from datetime import datetime
 
 if len(sys.argv) < 2:
     raise SystemExit("Usage: python claude-code-skills-notebooklm.py \"your topic here\"")
@@ -25,7 +26,7 @@ if not api_key:
 print(f"Searching YouTube for '{topic}' videos...")
 query = urllib.parse.urlencode({
     "part": "snippet",
-    "q": f"{topic} tutorial 2025",
+    "q": f"{topic} tutorial {datetime.now().year}",
     "type": "video",
     "maxResults": 10,
     "order": "viewCount",
@@ -69,10 +70,13 @@ for i, v in enumerate(videos, 1):
     print(f"  {i}. {v['title']} ({v['views']:,} views)")
     print(f"     {v['url']}")
 
-# Step 2: Create a NotebookLM notebook
+# Step 2: Create a NotebookLM notebook and switch to it
 print("\nCreating NotebookLM notebook...")
-subprocess.run(["notebooklm", "create", f"{topic} Analysis"], check=True)
+notebook_name = f"{topic} Analysis"
+subprocess.run(["notebooklm", "create", notebook_name], check=True)
 time.sleep(2)
+subprocess.run(["notebooklm", "use", notebook_name], check=True)
+time.sleep(1)
 
 # Step 3: Add each video as a source
 print("\nAdding videos as sources...")
@@ -106,9 +110,10 @@ subprocess.run(
 
 # Step 6: Download the infographic
 print("\nDownloading infographic...")
+safe_topic = topic.replace(" ", "-").lower()
 subprocess.run(
-    ["notebooklm", "download", "infographic", "./claude-code-skills-infographic"],
+    ["notebooklm", "download", "infographic", f"./{safe_topic}-infographic"],
     check=True
 )
 
-print("\nDone! Infographic saved to ./claude-code-skills-infographic")
+print(f"\nDone! Infographic saved to ./{safe_topic}-infographic")
