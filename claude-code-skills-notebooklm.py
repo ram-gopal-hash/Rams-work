@@ -88,7 +88,7 @@ for v in videos:
 print("\nAsking NotebookLM to analyze top skills...")
 result = subprocess.run(
     ["notebooklm", "ask",
-     "Based on all these videos, what are the top Claude Code skills being taught? "
+     f"Based on all these videos, what are the top {topic} skills being taught? "
      "List them by frequency and importance, with a brief description of each skill."],
     capture_output=True, text=True
 )
