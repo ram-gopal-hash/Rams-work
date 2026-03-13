@@ -13,6 +13,7 @@ import os
 import sys
 import urllib.request
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -27,6 +28,16 @@ if not api_key:
     raise SystemExit("ERROR: YOUTUBE_API_KEY environment variable not set.\n"
                      "Run: export YOUTUBE_API_KEY='your_key_here'")
 
+
+def duration_seconds(d: str) -> int:
+    """Parse ISO 8601 duration string (e.g. PT1H30M45S) to total seconds."""
+    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', d)
+    if not m:
+        return 0
+    h, mins, s = (int(x or 0) for x in m.groups())
+    return h * 3600 + mins * 60 + s
+
+
 # Step 1: Search YouTube for trending videos on the given topic
 print(f"Searching YouTube for '{topic}' videos...")
 query = urllib.parse.urlencode({
@@ -40,11 +51,14 @@ query = urllib.parse.urlencode({
 })
 url = f"https://www.googleapis.com/youtube/v3/search?{query}"
 with urllib.request.urlopen(url) as resp:
-    data = json.loads(resp.read())
+    data = json.load(resp)
 
 video_ids = [item["id"]["videoId"] for item in data.get("items", []) if item["id"].get("videoId")]
 
-# Fetch view counts
+if not video_ids:
+    raise SystemExit(f"YouTube search returned no video results for topic: {topic}")
+
+# Fetch view counts, duration, and snippet in one call
 stats_query = urllib.parse.urlencode({
     "part": "statistics,contentDetails,snippet",
     "id": ",".join(video_ids),
@@ -52,7 +66,7 @@ stats_query = urllib.parse.urlencode({
 })
 stats_url = f"https://www.googleapis.com/youtube/v3/videos?{stats_query}"
 with urllib.request.urlopen(stats_url) as resp:
-    stats_data = json.loads(resp.read())
+    stats_data = json.load(resp)
 
 videos = []
 for item in stats_data.get("items", []):
@@ -63,11 +77,8 @@ for item in stats_data.get("items", []):
     lang = snippet.get("defaultAudioLanguage", snippet.get("defaultLanguage", "en"))
     if lang and not lang.startswith("en"):
         continue
-    # Skip YouTube Shorts (duration under 2 minutes)
-    h = int((re.search(r'(\d+)H', duration) or re.search(r'(0)', '0')).group(1))
-    m = int((re.search(r'(\d+)M', duration) or re.search(r'(0)', '0')).group(1))
-    s = int((re.search(r'(\d+)S', duration) or re.search(r'(0)', '0')).group(1))
-    if h * 3600 + m * 60 + s < 120:
+    # Skip YouTube Shorts (under 2 minutes)
+    if duration_seconds(duration) < 120:
         continue
     videos.append({
         "title": snippet.get("title", ""),
@@ -78,7 +89,7 @@ for item in stats_data.get("items", []):
     })
 
 # Sort by view count, take top 5
-videos = sorted(videos, key=lambda x: x["views"] or 0, reverse=True)[:5]
+videos = sorted(videos, key=lambda x: x["views"], reverse=True)[:5]
 
 if not videos:
     raise SystemExit(f"No videos found for topic: {topic}")
@@ -90,7 +101,8 @@ for i, v in enumerate(videos, 1):
 
 # Step 2: Create a NotebookLM notebook
 print("\nCreating NotebookLM notebook...")
-notebook_name = f"{topic.replace(chr(34), '').replace('/', '-')} Analysis"
+safe_name = topic.replace('"', "").replace("/", "-")
+notebook_name = f"{safe_name} Analysis"
 create_result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "create", notebook_name, "--json"],
     check=True, capture_output=True, text=True
@@ -104,23 +116,29 @@ print(f"Notebook ID: {notebook_id}")
 print("Waiting for notebook to initialize...")
 time.sleep(8)
 
-# Step 3: Add each video as a source
+
+# Step 3: Add each video as a source (parallel)
+def add_source(v):
+    result = subprocess.run([
+        sys.executable, "-m", "notebooklm", "source", "add",
+        "-n", notebook_id,
+        "--type", "youtube",
+        v["url"]
+    ])
+    return v, result.returncode
+
+
 print("\nAdding videos as sources...")
 added = 0
-for v in videos:
-    if v["url"]:
-        print(f"  Adding: {v['title']}")
-        result = subprocess.run([
-            sys.executable, "-m", "notebooklm", "source", "add",
-            "-n", notebook_id,
-            "--type", "youtube",
-            v["url"]
-        ])
-        if result.returncode != 0:
+with ThreadPoolExecutor(max_workers=5) as executor:
+    futures = {executor.submit(add_source, v): v for v in videos}
+    for future in as_completed(futures):
+        v, rc = future.result()
+        if rc != 0:
             print(f"  Skipping (failed to add): {v['url']}")
         else:
+            print(f"  Added: {v['title']}")
             added += 1
-        time.sleep(2)
 
 if added == 0:
     raise SystemExit("No sources were added successfully. Cannot continue.")
@@ -143,7 +161,7 @@ if result.returncode != 0:
 else:
     print(result.stdout)
 
-# Step 5: Generate infographic
+# Step 5: Generate infographic (stream output so progress is visible)
 print("\nGenerating sketch-note style infographic...")
 gen_result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "generate", "infographic",
@@ -154,7 +172,8 @@ gen_result = subprocess.run(
 )
 
 # Step 6: Download the infographic
-safe_topic = topic.replace(" ", "-").lower()
+safe_topic = re.sub(r'[^\w-]', '-', topic.lower())
+safe_topic = re.sub(r'-{2,}', '-', safe_topic).strip('-')
 output_path = f"./{safe_topic}-infographic.png"
 if gen_result.returncode != 0:
     print(f"\nWarning: Infographic generation failed (possibly rate limited). Try again later with:")
