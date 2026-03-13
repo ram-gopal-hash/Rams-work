@@ -80,9 +80,9 @@ for i, v in enumerate(videos, 1):
 # Step 2: Create a NotebookLM notebook and switch to it
 print("\nCreating NotebookLM notebook...")
 notebook_name = f"{topic.replace(chr(34), '').replace('/', '-')} Analysis"
-subprocess.run(["notebooklm", "create", notebook_name], check=True)
+subprocess.run([sys.executable, "-m", "notebooklm", "create", notebook_name], check=True)
 time.sleep(2)
-subprocess.run(["notebooklm", "use", notebook_name], check=True)
+subprocess.run([sys.executable, "-m", "notebooklm", "use", notebook_name], check=True)
 time.sleep(1)
 
 # Step 3: Add each video as a source
@@ -90,7 +90,7 @@ print("\nAdding videos as sources...")
 for v in videos:
     if v["url"]:
         print(f"  Adding: {v['title']}")
-        result = subprocess.run(["notebooklm", "source", "add", v["url"]])
+        result = subprocess.run([sys.executable, "-m", "notebooklm", "source", "add", v["url"]])
         if result.returncode != 0:
             print(f"  Skipping (failed to add): {v['url']}")
         time.sleep(1)
@@ -98,7 +98,7 @@ for v in videos:
 # Step 4: Ask for analysis
 print("\nAsking NotebookLM to analyze top skills...")
 result = subprocess.run(
-    ["notebooklm", "ask",
+    [sys.executable, "-m", "notebooklm", "ask",
      f"Based on all these videos, what are the top {topic} skills being taught? "
      "List them by frequency and importance, with a brief description of each skill."],
     capture_output=True, text=True
@@ -112,7 +112,7 @@ else:
 # Step 5: Generate infographic
 print("\nGenerating sketch-note style infographic...")
 subprocess.run(
-    ["notebooklm", "generate", "infographic",
+    [sys.executable, "-m", "notebooklm", "generate", "infographic",
      "--style", "sketch-note",
      "--wait"],
     check=True
@@ -122,7 +122,7 @@ subprocess.run(
 print("\nDownloading infographic...")
 safe_topic = topic.replace(" ", "-").lower()
 subprocess.run(
-    ["notebooklm", "download", "infographic", f"./{safe_topic}-infographic"],
+    [sys.executable, "-m", "notebooklm", "download", "infographic", f"./{safe_topic}-infographic"],
     check=True
 )
 
