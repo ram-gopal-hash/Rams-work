@@ -32,8 +32,9 @@ query = urllib.parse.urlencode({
     "part": "snippet",
     "q": f"{topic} tutorial {datetime.now().year}",
     "type": "video",
-    "maxResults": 10,
+    "maxResults": 20,
     "order": "viewCount",
+    "relevanceLanguage": "en",
     "key": api_key,
 })
 url = f"https://www.googleapis.com/youtube/v3/search?{query}"
@@ -58,6 +59,9 @@ for item in stats_data.get("items", []):
     snippet = item["snippet"]
     stats = item.get("statistics", {})
     duration = item.get("contentDetails", {}).get("duration", "")
+    lang = snippet.get("defaultAudioLanguage", snippet.get("defaultLanguage", "en"))
+    if lang and not lang.startswith("en"):
+        continue
     videos.append({
         "title": snippet.get("title", ""),
         "url": f"https://www.youtube.com/watch?v={vid_id}",
