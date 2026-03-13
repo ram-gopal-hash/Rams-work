@@ -96,10 +96,10 @@ print("\n--- Analysis ---")
 print(result.stdout)
 
 # Step 5: Generate infographic
-print("\nGenerating handwritten blueprint style infographic...")
+print("\nGenerating sketch-note style infographic...")
 subprocess.run(
     ["notebooklm", "generate", "infographic",
-     "--style", "handwritten blueprint",
+     "--style", "sketch-note",
      "--wait"],
     check=True
 )
