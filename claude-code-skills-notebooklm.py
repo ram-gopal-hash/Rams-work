@@ -80,10 +80,14 @@ for i, v in enumerate(videos, 1):
 # Step 2: Create a NotebookLM notebook and switch to it
 print("\nCreating NotebookLM notebook...")
 notebook_name = f"{topic.replace(chr(34), '').replace('/', '-')} Analysis"
-subprocess.run([sys.executable, "-m", "notebooklm", "create", notebook_name], check=True)
+create_result = subprocess.run(
+    [sys.executable, "-m", "notebooklm", "create", notebook_name, "--json"],
+    check=True, capture_output=True, text=True
+)
+notebook_id = json.loads(create_result.stdout).get("id", notebook_name)
+time.sleep(3)
+subprocess.run([sys.executable, "-m", "notebooklm", "use", notebook_id], check=True)
 time.sleep(2)
-subprocess.run([sys.executable, "-m", "notebooklm", "use", notebook_name], check=True)
-time.sleep(1)
 
 # Step 3: Add each video as a source
 print("\nAdding videos as sources...")
