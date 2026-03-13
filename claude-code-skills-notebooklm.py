@@ -81,27 +81,45 @@ for i, v in enumerate(videos, 1):
     print(f"  {i}. {v['title']} ({v['views']:,} views)")
     print(f"     {v['url']}")
 
-# Step 2: Create a NotebookLM notebook and switch to it
+# Step 2: Create a NotebookLM notebook
 print("\nCreating NotebookLM notebook...")
 notebook_name = f"{topic.replace(chr(34), '').replace('/', '-')} Analysis"
 create_result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "create", notebook_name, "--json"],
     check=True, capture_output=True, text=True
 )
-notebook_id = json.loads(create_result.stdout).get("notebook", {}).get("id", notebook_name)
+try:
+    notebook_id = json.loads(create_result.stdout)["notebook"]["id"]
+except (json.JSONDecodeError, KeyError) as e:
+    raise SystemExit(f"Failed to parse notebook ID from create output.\nOutput: {create_result.stdout}\nError: {e}")
+
 print(f"Notebook ID: {notebook_id}")
-time.sleep(3)
+print("Waiting for notebook to initialize...")
+time.sleep(8)
 
 # Step 3: Add each video as a source
 print("\nAdding videos as sources...")
+added = 0
 for v in videos:
     if v["url"]:
         print(f"  Adding: {v['title']}")
-        result = subprocess.run([sys.executable, "-m", "notebooklm", "source", "add",
-                                 "-n", notebook_id, v["url"]])
+        result = subprocess.run([
+            sys.executable, "-m", "notebooklm", "source", "add",
+            "-n", notebook_id,
+            "--type", "youtube",
+            v["url"]
+        ])
         if result.returncode != 0:
             print(f"  Skipping (failed to add): {v['url']}")
-        time.sleep(1)
+        else:
+            added += 1
+        time.sleep(2)
+
+if added == 0:
+    raise SystemExit("No sources were added successfully. Cannot continue.")
+
+print(f"\n{added} source(s) added. Waiting for NotebookLM to process...")
+time.sleep(10)
 
 # Step 4: Ask for analysis
 print("\nAsking NotebookLM to analyze top skills...")
@@ -131,11 +149,12 @@ subprocess.run(
 # Step 6: Download the infographic
 print("\nDownloading infographic...")
 safe_topic = topic.replace(" ", "-").lower()
+output_path = f"./{safe_topic}-infographic.png"
 subprocess.run(
     [sys.executable, "-m", "notebooklm", "download", "infographic",
      "-n", notebook_id,
-     f"./{safe_topic}-infographic"],
+     output_path],
     check=True
 )
 
-print(f"\nDone! Infographic saved to ./{safe_topic}-infographic")
+print(f"\nDone! Infographic saved to {output_path}")
