@@ -8,19 +8,24 @@ import subprocess
 import json
 import time
 import os
+import sys
 import urllib.request
 import urllib.parse
+
+if len(sys.argv) < 2:
+    raise SystemExit("Usage: python claude-code-skills-notebooklm.py \"your topic here\"")
+topic = sys.argv[1]
 
 api_key = os.environ.get("YOUTUBE_API_KEY")
 if not api_key:
     raise SystemExit("ERROR: YOUTUBE_API_KEY environment variable not set.\n"
                      "Run: export YOUTUBE_API_KEY='your_key_here'")
 
-# Step 1: Search YouTube for trending Claude Code Skills videos
-print("Searching YouTube for Claude Code Skills videos...")
+# Step 1: Search YouTube for trending videos on the given topic
+print(f"Searching YouTube for '{topic}' videos...")
 query = urllib.parse.urlencode({
     "part": "snippet",
-    "q": "Claude Code skills tutorial 2025",
+    "q": f"{topic} tutorial 2025",
     "type": "video",
     "maxResults": 10,
     "order": "viewCount",
@@ -66,7 +71,7 @@ for i, v in enumerate(videos, 1):
 
 # Step 2: Create a NotebookLM notebook
 print("\nCreating NotebookLM notebook...")
-subprocess.run(["notebooklm", "create", "Claude Code Skills Analysis"], check=True)
+subprocess.run(["notebooklm", "create", f"{topic} Analysis"], check=True)
 time.sleep(2)
 
 # Step 3: Add each video as a source
