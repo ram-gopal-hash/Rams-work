@@ -89,16 +89,16 @@ create_result = subprocess.run(
     check=True, capture_output=True, text=True
 )
 notebook_id = json.loads(create_result.stdout).get("id", notebook_name)
+print(f"Notebook ID: {notebook_id}")
 time.sleep(3)
-subprocess.run([sys.executable, "-m", "notebooklm", "use", notebook_id], check=True)
-time.sleep(2)
 
 # Step 3: Add each video as a source
 print("\nAdding videos as sources...")
 for v in videos:
     if v["url"]:
         print(f"  Adding: {v['title']}")
-        result = subprocess.run([sys.executable, "-m", "notebooklm", "source", "add", v["url"]])
+        result = subprocess.run([sys.executable, "-m", "notebooklm", "source", "add",
+                                 "-n", notebook_id, v["url"]])
         if result.returncode != 0:
             print(f"  Skipping (failed to add): {v['url']}")
         time.sleep(1)
@@ -107,6 +107,7 @@ for v in videos:
 print("\nAsking NotebookLM to analyze top skills...")
 result = subprocess.run(
     [sys.executable, "-m", "notebooklm", "ask",
+     "-n", notebook_id,
      f"Based on all these videos, what are the top {topic} skills being taught? "
      "List them by frequency and importance, with a brief description of each skill."],
     capture_output=True, text=True
@@ -121,6 +122,7 @@ else:
 print("\nGenerating sketch-note style infographic...")
 subprocess.run(
     [sys.executable, "-m", "notebooklm", "generate", "infographic",
+     "-n", notebook_id,
      "--style", "sketch-note",
      "--wait"],
     check=True
@@ -130,7 +132,9 @@ subprocess.run(
 print("\nDownloading infographic...")
 safe_topic = topic.replace(" ", "-").lower()
 subprocess.run(
-    [sys.executable, "-m", "notebooklm", "download", "infographic", f"./{safe_topic}-infographic"],
+    [sys.executable, "-m", "notebooklm", "download", "infographic",
+     "-n", notebook_id,
+     f"./{safe_topic}-infographic"],
     check=True
 )
 
