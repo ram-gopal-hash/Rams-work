@@ -1,32 +1,60 @@
 """
 Claude Code Skills -> NotebookLM Pipeline
 Run this locally after: notebooklm login
+
+Requires: export YOUTUBE_API_KEY="your_key_here"
 """
 import subprocess
 import json
 import time
+import os
+import urllib.request
+import urllib.parse
+
+api_key = os.environ.get("YOUTUBE_API_KEY")
+if not api_key:
+    raise SystemExit("ERROR: YOUTUBE_API_KEY environment variable not set.\n"
+                     "Run: export YOUTUBE_API_KEY='your_key_here'")
 
 # Step 1: Search YouTube for trending Claude Code Skills videos
 print("Searching YouTube for Claude Code Skills videos...")
-result = subprocess.run(
-    ["yt-dlp", "-j", "--flat-playlist", "ytsearch10:Claude Code skills tutorial 2025",
-     "--no-warnings"],
-    capture_output=True, text=True
-)
+query = urllib.parse.urlencode({
+    "part": "snippet",
+    "q": "Claude Code skills tutorial 2025",
+    "type": "video",
+    "maxResults": 10,
+    "order": "viewCount",
+    "key": api_key,
+})
+url = f"https://www.googleapis.com/youtube/v3/search?{query}"
+with urllib.request.urlopen(url) as resp:
+    data = json.loads(resp.read())
+
+video_ids = [item["id"]["videoId"] for item in data.get("items", [])]
+
+# Fetch view counts
+stats_query = urllib.parse.urlencode({
+    "part": "statistics,contentDetails,snippet",
+    "id": ",".join(video_ids),
+    "key": api_key,
+})
+stats_url = f"https://www.googleapis.com/youtube/v3/videos?{stats_query}"
+with urllib.request.urlopen(stats_url) as resp:
+    stats_data = json.loads(resp.read())
 
 videos = []
-for line in result.stdout.splitlines():
-    try:
-        v = json.loads(line)
-        videos.append({
-            "title": v.get("title", ""),
-            "url": v.get("url") or v.get("webpage_url", ""),
-            "views": v.get("view_count", 0),
-            "channel": v.get("uploader", ""),
-            "duration": v.get("duration_string", ""),
-        })
-    except json.JSONDecodeError:
-        pass
+for item in stats_data.get("items", []):
+    vid_id = item["id"]
+    snippet = item["snippet"]
+    stats = item.get("statistics", {})
+    duration = item.get("contentDetails", {}).get("duration", "")
+    videos.append({
+        "title": snippet.get("title", ""),
+        "url": f"https://www.youtube.com/watch?v={vid_id}",
+        "views": int(stats.get("viewCount", 0)),
+        "channel": snippet.get("channelTitle", ""),
+        "duration": duration,
+    })
 
 # Sort by view count, take top 5
 videos = sorted(videos, key=lambda x: x["views"] or 0, reverse=True)[:5]
