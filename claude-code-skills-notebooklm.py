@@ -1,7 +1,8 @@
 """
-Claude Code Skills -> NotebookLM Pipeline
+YouTube -> NotebookLM Pipeline
 Run this locally after: notebooklm login
 
+Usage: python claude-code-skills-notebooklm.py "your topic here"
 Requires: export YOUTUBE_API_KEY="your_key_here"
 """
 import subprocess
@@ -36,7 +37,7 @@ url = f"https://www.googleapis.com/youtube/v3/search?{query}"
 with urllib.request.urlopen(url) as resp:
     data = json.loads(resp.read())
 
-video_ids = [item["id"]["videoId"] for item in data.get("items", [])]
+video_ids = [item["id"]["videoId"] for item in data.get("items", []) if item["id"].get("videoId")]
 
 # Fetch view counts
 stats_query = urllib.parse.urlencode({
@@ -57,13 +58,16 @@ for item in stats_data.get("items", []):
     videos.append({
         "title": snippet.get("title", ""),
         "url": f"https://www.youtube.com/watch?v={vid_id}",
-        "views": int(stats.get("viewCount", 0)),
+        "views": int(stats.get("viewCount") or 0),
         "channel": snippet.get("channelTitle", ""),
         "duration": duration,
     })
 
 # Sort by view count, take top 5
 videos = sorted(videos, key=lambda x: x["views"] or 0, reverse=True)[:5]
+
+if not videos:
+    raise SystemExit(f"No videos found for topic: {topic}")
 
 print(f"\nTop {len(videos)} videos found:")
 for i, v in enumerate(videos, 1):
@@ -72,7 +76,7 @@ for i, v in enumerate(videos, 1):
 
 # Step 2: Create a NotebookLM notebook and switch to it
 print("\nCreating NotebookLM notebook...")
-notebook_name = f"{topic} Analysis"
+notebook_name = f"{topic.replace(chr(34), '').replace('/', '-')} Analysis"
 subprocess.run(["notebooklm", "create", notebook_name], check=True)
 time.sleep(2)
 subprocess.run(["notebooklm", "use", notebook_name], check=True)
@@ -97,7 +101,10 @@ result = subprocess.run(
     capture_output=True, text=True
 )
 print("\n--- Analysis ---")
-print(result.stdout)
+if result.returncode != 0:
+    print(f"Warning: analysis command failed:\n{result.stderr}")
+else:
+    print(result.stdout)
 
 # Step 5: Generate infographic
 print("\nGenerating sketch-note style infographic...")
