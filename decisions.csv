@@ -1,0 +1,2 @@
+date,decision,reasoning,expected_outcome,review_date,status
+2026-03-14,Use Invidious public API instead of yt-dlp,yt-dlp is proxy-blocked (403) on this server; Invidious requires no key or auth,YouTube search works without API key or proxy bypass,2026-04-13,pending
