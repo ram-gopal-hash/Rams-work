@@ -1,6 +1,6 @@
 # notebooklm-analysis-skill
 
-**description:** Search YouTube for top videos on a topic, create a NotebookLM notebook, add the videos as sources, ask for a skills analysis, and generate a sketch-note infographic. Use this skill when the user asks to analyze YouTube videos in NotebookLM, do a "YouTube to NotebookLM" pipeline, generate a NotebookLM skill analysis, or any request combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` env var and `notebooklm-mcp-cli` MCP server registered in Claude Code.
+**description:** Search YouTube for top videos on a topic, create a NotebookLM notebook, add the videos as sources, ask for a skills analysis, and optionally generate an output (infographic, podcast, FAQ, study guide, or none). Use this skill when the user asks to analyze YouTube videos in NotebookLM, do a "YouTube to NotebookLM" pipeline, generate a NotebookLM skill analysis, or any request combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` env var and `notebooklm-mcp-cli` MCP server registered in Claude Code.
 
 ---
 
@@ -27,7 +27,7 @@ nlm login
 Run the search script and parse the JSON output:
 
 ```bash
-python claude-code-skills-notebooklm.py "<topic>"
+python yt-search.py "<topic>"
 ```
 
 The script prints a JSON array of objects with these fields:
@@ -63,24 +63,49 @@ Print the full response for the user.
 
 ---
 
-### Step 5 — Generate infographic
+### Step 5 — Choose output (ask the user if not already specified)
 
-Use the MCP tool to generate a sketch-note style infographic from the notebook.
+If the user has not stated what they want as output, ask:
+
+> "What would you like NotebookLM to generate from these videos?"
+> 1. **Infographic** — sketch-note style visual summary (PNG file)
+> 2. **Podcast** — Audio Overview (MP3 conversational summary)
+> 3. **FAQ** — Frequently Asked Questions document
+> 4. **Study guide** — structured notes with key concepts and definitions
+> 5. **None** — just leave the notebook with sources loaded for manual exploration
+
+Then proceed based on their choice:
+
+#### Option 1 — Infographic
+
+Use the MCP tool to generate a sketch-note style infographic.
 Use `--wait` / wait-for-completion mode and retry up to 3 times if rate limited.
+Download with the MCP tool and save as `./<topic-slug>-infographic.png`.
 
----
+#### Option 2 — Podcast (Audio Overview)
 
-### Step 6 — Download infographic
+Use the MCP tool to trigger Audio Overview generation on the notebook.
+Poll for completion, then download the MP3 as `./<topic-slug>-podcast.mp3`.
 
-Use the MCP download tool to save the infographic locally as:
+#### Option 3 — FAQ
 
-```
-./<topic-slug>-infographic.png
-```
+Use the MCP query tool with the prompt:
+> "Generate a comprehensive FAQ based on all the video sources.
+> Format as: Q: [question] / A: [answer]. Cover the most common beginner and intermediate questions about `<topic>`."
 
-where `<topic-slug>` is the topic lowercased with spaces replaced by hyphens.
+Print the FAQ and optionally save to `./<topic-slug>-faq.md`.
 
-Report the final file path to the user.
+#### Option 4 — Study guide
+
+Use the MCP query tool with the prompt:
+> "Create a structured study guide for `<topic>` based on all video sources.
+> Include: key concepts with definitions, common patterns/techniques, recommended learning order, and practical tips."
+
+Print the study guide and optionally save to `./<topic-slug>-study-guide.md`.
+
+#### Option 5 — None
+
+Skip generation. Report the notebook name and ID so the user can open it in NotebookLM directly.
 
 ---
 

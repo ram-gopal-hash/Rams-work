@@ -279,6 +279,127 @@ Both methods return the same underlying dict. Here are the most useful keys:
 
 ---
 
+## 3.5 — Quality Filtering (language, Shorts, view count)
+
+Use these patterns when you need only substantive, English-language, non-Shorts content —
+the same checks used in `yt-search.py`.
+
+### CLI — filter during search
+
+```bash
+# English-language results only (API hint; not a guarantee — always post-filter)
+yt-dlp --print "%(title)s  %(webpage_url)s  %(language)s  %(duration)s" \
+       "ytsearch20:python tutorial 2025"
+
+# Skip Shorts (duration < 120 s) using match_filter
+yt-dlp -j --match-filter "duration >= 120" "ytsearch20:python tutorial 2025"
+
+# Combine: min duration 2 min + English language tag
+yt-dlp -j \
+  --match-filter "duration >= 120 & language = 'en'" \
+  "ytsearch20:python tutorial 2025"
+```
+
+> **Note:** `language` is often `null` on search results. Use `defaultAudioLanguage` via
+> the YouTube Data API (see Python section below) for reliable language filtering.
+
+### Python API — YouTube Data API v3 (reliable language + duration)
+
+```python
+import re, json, urllib.request, urllib.parse, os
+from datetime import datetime
+
+def duration_seconds(iso: str) -> int:
+    """Parse ISO 8601 duration (PT1H30M45S) → total seconds."""
+    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', iso)
+    if not m:
+        return 0
+    h, mins, s = (int(x or 0) for x in m.groups())
+    return h * 3600 + mins * 60 + s
+
+def youtube_search_filtered(topic: str, api_key: str, max_candidates: int = 20,
+                            top_n: int = 5, min_duration_sec: int = 120) -> list[dict]:
+    """
+    Search YouTube via Data API v3 and apply quality filters:
+      - English audio language (defaultAudioLanguage / defaultLanguage starts with 'en')
+      - Skip Shorts (duration < min_duration_sec, default 2 min)
+      - Sort by view count, return top_n results
+    """
+    # 1. Search for candidate video IDs
+    search_params = urllib.parse.urlencode({
+        "part": "snippet",
+        "q": f"{topic} tutorial {datetime.now().year}",
+        "type": "video",
+        "maxResults": max_candidates,
+        "order": "viewCount",
+        "relevanceLanguage": "en",   # hint to API — not a hard filter
+        "key": api_key,
+    })
+    with urllib.request.urlopen(
+        f"https://www.googleapis.com/youtube/v3/search?{search_params}"
+    ) as r:
+        ids = [i["id"]["videoId"] for i in json.load(r).get("items", [])
+               if i["id"].get("videoId")]
+
+    if not ids:
+        return []
+
+    # 2. Fetch statistics + duration + snippet in one call
+    stats_params = urllib.parse.urlencode({
+        "part": "statistics,contentDetails,snippet",
+        "id": ",".join(ids),
+        "key": api_key,
+    })
+    with urllib.request.urlopen(
+        f"https://www.googleapis.com/youtube/v3/videos?{stats_params}"
+    ) as r:
+        items = json.load(r).get("items", [])
+
+    videos = []
+    for item in items:
+        snippet  = item["snippet"]
+        stats    = item.get("statistics", {})
+        duration = item.get("contentDetails", {}).get("duration", "")
+
+        # Language filter — prefer defaultAudioLanguage, fall back to defaultLanguage
+        lang = snippet.get("defaultAudioLanguage") or snippet.get("defaultLanguage") or "en"
+        if not lang.startswith("en"):
+            continue
+
+        # Shorts filter
+        if duration_seconds(duration) < min_duration_sec:
+            continue
+
+        videos.append({
+            "title":    snippet.get("title", ""),
+            "url":      f"https://www.youtube.com/watch?v={item['id']}",
+            "views":    int(stats.get("viewCount") or 0),
+            "channel":  snippet.get("channelTitle", ""),
+            "duration": duration,
+        })
+
+    # Sort by views, return top N
+    return sorted(videos, key=lambda v: v["views"], reverse=True)[:top_n]
+
+
+# Example usage
+api_key = os.environ["YOUTUBE_API_KEY"]
+results = youtube_search_filtered("machine learning", api_key)
+for v in results:
+    print(f"{v['title']}  ({v['views']:,} views)  {v['url']}")
+```
+
+**Filters applied:**
+
+| Filter | How |
+|--------|-----|
+| English language | `defaultAudioLanguage` or `defaultLanguage` starts with `"en"` |
+| No Shorts | `duration_seconds(duration) >= 120` (skip videos under 2 min) |
+| Most viewed | `sorted(..., key=views, reverse=True)[:top_n]` |
+| Year-relevant | `"tutorial {current_year}"` appended to query |
+
+---
+
 ## 4 — Tips & Gotchas
 
 1. **Rate limiting.** YouTube may throttle or block rapid-fire requests. Add small delays between calls in batch jobs (`time.sleep(1-3)`).

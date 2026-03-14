@@ -1,7 +1,7 @@
 """
 YouTube Search — outputs top 5 video URLs as JSON for NotebookLM MCP pipeline.
 
-Usage: python claude-code-skills-notebooklm.py "your topic here"
+Usage: python yt-search.py "your topic here"
 Requires: export YOUTUBE_API_KEY="your_key_here"
 
 NotebookLM steps (create notebook, add sources, analyze, generate infographic)
@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 if len(sys.argv) < 2:
-    raise SystemExit("Usage: python claude-code-skills-notebooklm.py \"your topic here\"")
+    raise SystemExit("Usage: python yt-search.py \"your topic here\"")
 topic = sys.argv[1]
 
 api_key = os.environ.get("YOUTUBE_API_KEY")
