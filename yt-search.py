@@ -2,96 +2,112 @@
 YouTube Search — outputs top 5 video URLs as JSON for NotebookLM MCP pipeline.
 
 Usage: python yt-search.py "your topic here"
-Requires: export YOUTUBE_API_KEY="your_key_here"
+No API key required — uses yt-dlp.
 
-NotebookLM steps (create notebook, add sources, analyze, generate infographic)
-are handled by Claude Code via the notebooklm-mcp-cli MCP server.
-Install: pip install notebooklm-mcp-cli && nlm setup add claude-code
+NotebookLM steps (create notebook, add sources, analyze, generate output)
+are handled by Claude Code via nlm CLI.
 """
-import re
 import json
-import os
 import sys
-import urllib.request
-import urllib.parse
-from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv()
-
-if len(sys.argv) < 2:
-    raise SystemExit("Usage: python yt-search.py \"your topic here\"")
-topic = sys.argv[1]
-
-api_key = os.environ.get("YOUTUBE_API_KEY")
-if not api_key:
-    raise SystemExit("ERROR: YOUTUBE_API_KEY environment variable not set.\n"
-                     "Run: export YOUTUBE_API_KEY='your_key_here'")
+import subprocess
 
 
-def duration_seconds(d: str) -> int:
-    """Parse ISO 8601 duration string (e.g. PT1H30M45S) to total seconds."""
-    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', d)
+def duration_seconds(iso: str) -> int:
+    """Parse ISO 8601 duration (PT1H30M45S) → total seconds."""
+    import re
+    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', iso or "")
     if not m:
         return 0
     h, mins, s = (int(x or 0) for x in m.groups())
     return h * 3600 + mins * 60 + s
 
 
-# Step 1: Search YouTube for trending videos on the given topic
-print(f"Searching YouTube for '{topic}' videos...", file=sys.stderr)
-query = urllib.parse.urlencode({
-    "part": "snippet",
-    "q": f"{topic} tutorial {datetime.now().year}",
-    "type": "video",
-    "maxResults": 20,
-    "order": "viewCount",
-    "relevanceLanguage": "en",
-    "key": api_key,
-})
-url = f"https://www.googleapis.com/youtube/v3/search?{query}"
-with urllib.request.urlopen(url) as resp:
-    data = json.load(resp)
+def search_youtube(topic: str, max_candidates: int = 30, top_n: int = 5) -> list:
+    """
+    Search YouTube using yt-dlp and apply quality filters:
+      - English audio language
+      - Skip Shorts (under 2 minutes)
+      - Sort by view count, return top_n
+    """
+    print(f"Searching YouTube for '{topic}' videos...", file=sys.stderr)
 
-video_ids = [item["id"]["videoId"] for item in data.get("items", []) if item["id"].get("videoId")]
+    cmd = [
+        "yt-dlp",
+        "--dump-json",
+        "--flat-playlist",
+        "--no-warnings",
+        "--quiet",
+        f"ytsearch{max_candidates}:{topic} tutorial",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise SystemExit(f"yt-dlp search failed: {result.stderr}")
 
-if not video_ids:
-    raise SystemExit(f"YouTube search returned no video results for topic: {topic}")
+    entries = []
+    for line in result.stdout.strip().splitlines():
+        if line:
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
 
-# Fetch view counts, duration, and snippet in one call
-stats_query = urllib.parse.urlencode({
-    "part": "statistics,contentDetails,snippet",
-    "id": ",".join(video_ids),
-    "key": api_key,
-})
-stats_url = f"https://www.googleapis.com/youtube/v3/videos?{stats_query}"
-with urllib.request.urlopen(stats_url) as resp:
-    stats_data = json.load(resp)
+    if not entries:
+        raise SystemExit(f"No YouTube results found for: {topic}")
 
-videos = []
-for item in stats_data.get("items", []):
-    vid_id = item["id"]
-    snippet = item["snippet"]
-    stats = item.get("statistics", {})
-    duration = item.get("contentDetails", {}).get("duration", "")
-    lang = snippet.get("defaultAudioLanguage", snippet.get("defaultLanguage", "en"))
-    if lang and not lang.startswith("en"):
-        continue
-    # Skip YouTube Shorts (under 2 minutes)
-    if duration_seconds(duration) < 120:
-        continue
-    videos.append({
-        "title": snippet.get("title", ""),
-        "url": f"https://www.youtube.com/watch?v={vid_id}",
-        "views": int(stats.get("viewCount") or 0),
-        "channel": snippet.get("channelTitle", ""),
-        "duration": duration,
-    })
+    # Resolve full metadata for each candidate to get duration and language
+    print(f"Fetching metadata for {len(entries)} candidates...", file=sys.stderr)
+    videos = []
+    for entry in entries:
+        url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id', '')}"
+        meta_cmd = [
+            "yt-dlp",
+            "--dump-json",
+            "--no-warnings",
+            "--quiet",
+            "--skip-download",
+            url,
+        ]
+        meta = subprocess.run(meta_cmd, capture_output=True, text=True, timeout=15)
+        if meta.returncode != 0:
+            continue
+        try:
+            info = json.loads(meta.stdout)
+        except json.JSONDecodeError:
+            continue
 
-# Sort by view count, take top 5
-videos = sorted(videos, key=lambda x: x["views"], reverse=True)[:5]
+        # Language filter — skip non-English
+        lang = info.get("language") or ""
+        if lang and not lang.startswith("en"):
+            continue
 
-if not videos:
-    raise SystemExit(f"No videos found for topic: {topic}")
+        # Duration filter — skip Shorts (under 2 minutes)
+        duration = info.get("duration") or 0
+        if duration < 120:
+            continue
 
-print(json.dumps(videos))
+        videos.append({
+            "title": info.get("title", ""),
+            "url": info.get("webpage_url", url),
+            "views": info.get("view_count") or 0,
+            "channel": info.get("channel") or info.get("uploader", ""),
+            "duration": info.get("duration_string", ""),
+        })
+
+        if len(videos) >= top_n * 3:  # gather extra to sort, then trim
+            break
+
+    # Sort by views, return top N
+    videos = sorted(videos, key=lambda v: v["views"], reverse=True)[:top_n]
+
+    if not videos:
+        raise SystemExit(f"No suitable videos found for: {topic}")
+
+    return videos
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        raise SystemExit('Usage: python yt-search.py "your topic here"')
+    topic = sys.argv[1]
+    results = search_youtube(topic)
+    print(json.dumps(results))
