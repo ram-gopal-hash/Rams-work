@@ -2,112 +2,108 @@
 YouTube Search — outputs top 5 video URLs as JSON for NotebookLM MCP pipeline.
 
 Usage: python yt-search.py "your topic here"
-No API key required — uses yt-dlp.
+Requires YOUTUBE_API_KEY in .env or environment.
 
 NotebookLM steps (create notebook, add sources, analyze, generate output)
 are handled by Claude Code via nlm CLI.
 """
 import json
+import os
+import re
 import sys
-import subprocess
+import urllib.parse
+import urllib.request
 
 
-def duration_seconds(iso: str) -> int:
+def load_env():
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, _, v = line.partition("=")
+                    os.environ.setdefault(k.strip(), v.strip())
+
+
+def duration_to_seconds(iso: str) -> int:
     """Parse ISO 8601 duration (PT1H30M45S) → total seconds."""
-    import re
-    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', iso or "")
+    m = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", iso or "")
     if not m:
         return 0
     h, mins, s = (int(x or 0) for x in m.groups())
     return h * 3600 + mins * 60 + s
 
 
-def search_youtube(topic: str, max_candidates: int = 30, top_n: int = 5) -> list:
-    """
-    Search YouTube using yt-dlp and apply quality filters:
-      - English audio language
-      - Skip Shorts (under 2 minutes)
-      - Sort by view count, return top_n
-    """
-    print(f"Searching YouTube for '{topic}' videos...", file=sys.stderr)
+def yt_api(endpoint: str, params: dict, api_key: str) -> dict:
+    params["key"] = api_key
+    url = f"https://www.googleapis.com/youtube/v3/{endpoint}?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode())
 
-    cmd = [
-        "yt-dlp",
-        "--dump-json",
-        "--flat-playlist",
-        "--no-warnings",
-        "--quiet",
-        f"ytsearch{max_candidates}:{topic} tutorial",
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise SystemExit(f"yt-dlp search failed: {result.stderr}")
 
-    entries = []
-    for line in result.stdout.strip().splitlines():
-        if line:
-            try:
-                entries.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+def search_youtube(topic: str, api_key: str, top_n: int = 5) -> list:
+    print(f"Searching YouTube for '{topic}' ...", file=sys.stderr)
 
-    if not entries:
+    # Step 1: search for video IDs
+    search_data = yt_api("search", {
+        "part": "snippet",
+        "q": topic,
+        "type": "video",
+        "maxResults": 50,
+        "relevanceLanguage": "en",
+        "order": "relevance",
+    }, api_key)
+
+    video_ids = [item["id"]["videoId"] for item in search_data.get("items", [])]
+    if not video_ids:
         raise SystemExit(f"No YouTube results found for: {topic}")
 
-    # Resolve full metadata for each candidate to get duration and language
-    print(f"Fetching metadata for {len(entries)} candidates...", file=sys.stderr)
+    # Step 2: get duration + view count for all IDs in one request
+    details_data = yt_api("videos", {
+        "part": "contentDetails,statistics,snippet",
+        "id": ",".join(video_ids),
+    }, api_key)
+
     videos = []
-    for entry in entries:
-        url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id', '')}"
-        meta_cmd = [
-            "yt-dlp",
-            "--dump-json",
-            "--no-warnings",
-            "--quiet",
-            "--skip-download",
-            url,
-        ]
-        meta = subprocess.run(meta_cmd, capture_output=True, text=True, timeout=15)
-        if meta.returncode != 0:
+    for item in details_data.get("items", []):
+        duration = duration_to_seconds(item["contentDetails"].get("duration", ""))
+        if duration < 120:  # skip Shorts
             continue
-        try:
-            info = json.loads(meta.stdout)
-        except json.JSONDecodeError:
-            continue
+        views = int(item["statistics"].get("viewCount", 0))
+        snippet = item["snippet"]
 
-        # Language filter — skip non-English
-        lang = info.get("language") or ""
-        if lang and not lang.startswith("en"):
-            continue
-
-        # Duration filter — skip Shorts (under 2 minutes)
-        duration = info.get("duration") or 0
-        if duration < 120:
-            continue
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        dur_str = (
+            f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
+        )
 
         videos.append({
-            "title": info.get("title", ""),
-            "url": info.get("webpage_url", url),
-            "views": info.get("view_count") or 0,
-            "channel": info.get("channel") or info.get("uploader", ""),
-            "duration": info.get("duration_string", ""),
+            "title": snippet.get("title", ""),
+            "url": f"https://www.youtube.com/watch?v={item['id']}",
+            "views": views,
+            "channel": snippet.get("channelTitle", ""),
+            "duration": dur_str,
         })
-
-        if len(videos) >= top_n * 3:  # gather extra to sort, then trim
-            break
-
-    # Sort by views, return top N
-    videos = sorted(videos, key=lambda v: v["views"], reverse=True)[:top_n]
 
     if not videos:
         raise SystemExit(f"No suitable videos found for: {topic}")
 
-    return videos
+    return sorted(videos, key=lambda v: v["views"], reverse=True)[:top_n]
 
 
 if __name__ == "__main__":
+    load_env()
     if len(sys.argv) < 2:
         raise SystemExit('Usage: python yt-search.py "your topic here"')
+    api_key = os.environ.get("YOUTUBE_API_KEY")
+    if not api_key:
+        raise SystemExit(
+            "YOUTUBE_API_KEY not set. Add it to .env or set the environment variable.\n"
+            "Get a free key at: https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+        )
     topic = sys.argv[1]
-    results = search_youtube(topic)
-    print(json.dumps(results))
+    results = search_youtube(topic, api_key)
+    print(json.dumps(results, indent=2))

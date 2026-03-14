@@ -4,59 +4,62 @@
 add the videos as sources, analyze the content, and generate an output chosen by the user
 (FAQ, study guide, infographic, podcast, or none). Trigger when the user asks to analyze
 YouTube videos in NotebookLM, do a "YouTube to NotebookLM" pipeline, or any request
-combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` in `.env` and
-`notebooklm-mcp-cli` installed.
+combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` in `.env`,
+`notebooklm-mcp-cli` installed, and `nlm` authenticated.
 
 ---
 
-## One-time setup (Windows PowerShell)
+## One-time `nlm` auth on Linux
 
-```powershell
-# 1. Install
-pip install notebooklm-mcp-cli
+`nlm login` needs a real browser — on Linux use **manual cookie export** instead:
 
-# 2. Add nlm to PATH for this session (replace username if different)
-$env:PATH += ";C:\Users\tarar\AppData\Local\Python\pythoncore-3.14-64\Scripts"
+1. Open `https://notebooklm.google.com` in your browser (already logged in)
+2. Press **F12** → Network tab → reload the page
+3. Right-click **any request** to `notebooklm.google.com` → **Copy as cURL**
+4. Paste that cURL command in the Claude Code chat
+5. Claude will write it to `/tmp/nlm-curl.txt` and run:
 
-# 3. Authenticate
-nlm login
-
-# 4. Create .env with YouTube API key
-'YOUTUBE_API_KEY=your_key_here' | Out-File -FilePath 'C:\Users\tarar\Rams-work\.env' -Encoding utf8
+```bash
+nlm login --manual --file /tmp/nlm-curl.txt
+nlm notebook list   # verify it shows your notebooks
+rm /tmp/nlm-curl.txt
 ```
 
-To make PATH permanent (so you never need step 2 again):
-```powershell
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\Users\tarar\AppData\Local\Python\pythoncore-3.14-64\Scripts", "User")
-```
-
----
-
-## Auth troubleshooting
-
-If `nlm notebook list` says "Authentication expired" even after `nlm login`:
-```powershell
+Auth troubleshooting — if `nlm notebook list` says "Authentication expired":
+```bash
 nlm login --clear
-nlm login
-nlm notebook list   # verify it shows your notebooks before proceeding
+# then repeat the cURL export steps above
 ```
+
+---
+
+## One-time YouTube API key setup
+
+YouTube Data API v3 is required (free, 10,000 queries/day quota).
+
+```bash
+echo "YOUTUBE_API_KEY=your_key_here" >> /home/user/Rams-work/.env
+```
+
+Get a key: https://console.cloud.google.com/apis/library/youtube.googleapis.com
 
 ---
 
 ## Step 1 — Search YouTube
 
-```powershell
-cd C:\Users\tarar\Rams-work
+```bash
+cd /home/user/Rams-work
 python yt-search.py "<topic>"
 ```
 
-Output: JSON array of top 5 videos. Note the `url` values — needed for step 3.
+Uses YouTube Data API v3 — returns top 5 videos by view count, English, no Shorts.
+Output: JSON array with `title`, `url`, `views`, `channel`, `duration`.
 
 ---
 
 ## Step 2 — Create notebook
 
-```powershell
+```bash
 nlm notebook create "<topic> Analysis"
 ```
 
@@ -70,7 +73,7 @@ Save the notebook ID — used in every step below.
 
 Run one command per video URL (replace `<notebook_id>` and each `<url>`):
 
-```powershell
+```bash
 nlm source add <notebook_id> --youtube "<url1>"
 nlm source add <notebook_id> --youtube "<url2>"
 nlm source add <notebook_id> --youtube "<url3>"
@@ -84,7 +87,7 @@ Wait for all to succeed before continuing. If a source fails, skip it and contin
 
 ## Step 4 — Analyze top skills
 
-```powershell
+```bash
 nlm query notebook <notebook_id> "Based on all these videos, what are the top <topic> skills being taught? List them by frequency and importance, with a brief description of each skill."
 ```
 
@@ -108,21 +111,15 @@ Then run the matching command below.
 
 ### Option 1 — FAQ
 
-```powershell
+```bash
 nlm query notebook <notebook_id> "Generate a comprehensive FAQ based on all the video sources. Format each entry as: Q: [question] / A: [answer]. Cover the most common beginner and intermediate questions about <topic>."
-```
-
-Save the answer to a file:
-```powershell
-# After running the query, save manually or pipe output
-nlm query notebook <notebook_id> "Generate a FAQ..." | Out-File "<topic>-faq.md" -Encoding utf8
 ```
 
 ---
 
 ### Option 2 — Study guide
 
-```powershell
+```bash
 nlm query notebook <notebook_id> "Create a structured study guide for <topic> based on all video sources. Include: key concepts with definitions, common patterns and techniques, recommended learning order, and practical tips."
 ```
 
@@ -130,12 +127,8 @@ nlm query notebook <notebook_id> "Create a structured study guide for <topic> ba
 
 ### Option 3 — Infographic
 
-```powershell
+```bash
 nlm infographic create <notebook_id> --style sketch-note --wait
-```
-
-Then download:
-```powershell
 nlm download <notebook_id> --type infographic --output "<topic>-infographic.png"
 ```
 
@@ -143,12 +136,8 @@ nlm download <notebook_id> --type infographic --output "<topic>-infographic.png"
 
 ### Option 4 — Podcast (Audio Overview)
 
-```powershell
+```bash
 nlm audio create <notebook_id> --wait
-```
-
-Then download:
-```powershell
 nlm download <notebook_id> --type audio --output "<topic>-podcast.mp3"
 ```
 
@@ -167,3 +156,4 @@ Notebook ID: `<notebook_id>`
 - The `nlm query notebook` response is JSON; extract only the `answer` field to show the user
 - `yt-search.py` prints status to stderr and JSON to stdout — only stdout is the data
 - Sources take 30–60 seconds to index after adding; if query returns thin results, wait and retry
+- If all Invidious instances fail, check https://api.invidious.io/instances.json for a live one
