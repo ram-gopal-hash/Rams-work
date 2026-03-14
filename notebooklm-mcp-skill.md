@@ -1,116 +1,169 @@
 # notebooklm-analysis-skill
 
-**description:** Search YouTube for top videos on a topic, create a NotebookLM notebook, add the videos as sources, ask for a skills analysis, and optionally generate an output (infographic, podcast, FAQ, study guide, or none). Use this skill when the user asks to analyze YouTube videos in NotebookLM, do a "YouTube to NotebookLM" pipeline, generate a NotebookLM skill analysis, or any request combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` env var and `notebooklm-mcp-cli` MCP server registered in Claude Code.
+**description:** Search YouTube for top videos on a topic, create a NotebookLM notebook,
+add the videos as sources, analyze the content, and generate an output chosen by the user
+(FAQ, study guide, infographic, podcast, or none). Trigger when the user asks to analyze
+YouTube videos in NotebookLM, do a "YouTube to NotebookLM" pipeline, or any request
+combining YouTube search with NotebookLM. Requires `YOUTUBE_API_KEY` in `.env` and
+`notebooklm-mcp-cli` installed.
 
 ---
 
-## Prerequisites (one-time setup)
+## One-time setup (Windows PowerShell)
 
-```bash
-# YouTube API key
-export YOUTUBE_API_KEY="your_key_here"
-
-# Install MCP CLI and register with Claude Code
+```powershell
+# 1. Install
 pip install notebooklm-mcp-cli
-nlm setup add claude-code
 
-# Authenticate NotebookLM (opens browser)
+# 2. Add nlm to PATH for this session (replace username if different)
+$env:PATH += ";C:\Users\tarar\AppData\Local\Python\pythoncore-3.14-64\Scripts"
+
+# 3. Authenticate
 nlm login
+
+# 4. Create .env with YouTube API key
+'YOUTUBE_API_KEY=your_key_here' | Out-File -FilePath 'C:\Users\tarar\Rams-work\.env' -Encoding utf8
+```
+
+To make PATH permanent (so you never need step 2 again):
+```powershell
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\Users\tarar\AppData\Local\Python\pythoncore-3.14-64\Scripts", "User")
 ```
 
 ---
 
-## Steps (execute in order, using MCP tools for steps 2–6)
+## Auth troubleshooting
 
-### Step 1 — Search YouTube
+If `nlm notebook list` says "Authentication expired" even after `nlm login`:
+```powershell
+nlm login --clear
+nlm login
+nlm notebook list   # verify it shows your notebooks before proceeding
+```
 
-Run the search script and parse the JSON output:
+---
 
-```bash
+## Step 1 — Search YouTube
+
+```powershell
+cd C:\Users\tarar\Rams-work
 python yt-search.py "<topic>"
 ```
 
-The script prints a JSON array of objects with these fields:
-`title`, `url`, `views`, `channel`, `duration`
-
-Extract the list of `url` values for the next steps.
+Output: JSON array of top 5 videos. Note the `url` values — needed for step 3.
 
 ---
 
-### Step 2 — Create NotebookLM notebook
+## Step 2 — Create notebook
 
-Use MCP tool to create a new notebook named `"<topic> Analysis"`.
-Save the returned notebook ID for subsequent steps.
+```powershell
+nlm notebook create "<topic> Analysis"
+```
 
----
+Output: `✓ Created notebook: ... ID: <notebook_id>`
 
-### Step 3 — Add YouTube sources
-
-For each of the 5 video URLs from Step 1, use the MCP tool to add it as a YouTube source to the notebook.
-
-Wait for all sources to be fully indexed before proceeding to Step 4.
+Save the notebook ID — used in every step below.
 
 ---
 
-### Step 4 — Analyze top skills
+## Step 3 — Add YouTube sources
 
-Use the MCP query tool to ask the notebook:
+Run one command per video URL (replace `<notebook_id>` and each `<url>`):
 
-> "Based on all these videos, what are the top `<topic>` skills being taught?
-> List them by frequency and importance, with a brief description of each skill."
+```powershell
+nlm source add <notebook_id> --youtube "<url1>"
+nlm source add <notebook_id> --youtube "<url2>"
+nlm source add <notebook_id> --youtube "<url3>"
+nlm source add <notebook_id> --youtube "<url4>"
+nlm source add <notebook_id> --youtube "<url5>"
+```
 
-Print the full response for the user.
+Wait for all to succeed before continuing. If a source fails, skip it and continue.
 
 ---
 
-### Step 5 — Choose output (ask the user if not already specified)
+## Step 4 — Analyze top skills
 
-If the user has not stated what they want as output, ask:
+```powershell
+nlm query notebook <notebook_id> "Based on all these videos, what are the top <topic> skills being taught? List them by frequency and importance, with a brief description of each skill."
+```
 
-> "What would you like NotebookLM to generate from these videos?"
-> 1. **Infographic** — sketch-note style visual summary (PNG file)
-> 2. **Podcast** — Audio Overview (MP3 conversational summary)
-> 3. **FAQ** — Frequently Asked Questions document
-> 4. **Study guide** — structured notes with key concepts and definitions
-> 5. **None** — just leave the notebook with sources loaded for manual exploration
+Parse and display only the `answer` field from the JSON response.
 
-Then proceed based on their choice:
+---
 
-#### Option 1 — Infographic
+## Step 5 — Choose output
 
-Use the MCP tool to generate a sketch-note style infographic.
-Use `--wait` / wait-for-completion mode and retry up to 3 times if rate limited.
-Download with the MCP tool and save as `./<topic-slug>-infographic.png`.
+Ask the user:
+> "What would you like to generate from this notebook?"
+> 1. FAQ
+> 2. Study guide
+> 3. Infographic
+> 4. Podcast (Audio Overview)
+> 5. Nothing — leave notebook open for manual use
 
-#### Option 2 — Podcast (Audio Overview)
+Then run the matching command below.
 
-Use the MCP tool to trigger Audio Overview generation on the notebook.
-Poll for completion, then download the MP3 as `./<topic-slug>-podcast.mp3`.
+---
 
-#### Option 3 — FAQ
+### Option 1 — FAQ
 
-Use the MCP query tool with the prompt:
-> "Generate a comprehensive FAQ based on all the video sources.
-> Format as: Q: [question] / A: [answer]. Cover the most common beginner and intermediate questions about `<topic>`."
+```powershell
+nlm query notebook <notebook_id> "Generate a comprehensive FAQ based on all the video sources. Format each entry as: Q: [question] / A: [answer]. Cover the most common beginner and intermediate questions about <topic>."
+```
 
-Print the FAQ and optionally save to `./<topic-slug>-faq.md`.
+Save the answer to a file:
+```powershell
+# After running the query, save manually or pipe output
+nlm query notebook <notebook_id> "Generate a FAQ..." | Out-File "<topic>-faq.md" -Encoding utf8
+```
 
-#### Option 4 — Study guide
+---
 
-Use the MCP query tool with the prompt:
-> "Create a structured study guide for `<topic>` based on all video sources.
-> Include: key concepts with definitions, common patterns/techniques, recommended learning order, and practical tips."
+### Option 2 — Study guide
 
-Print the study guide and optionally save to `./<topic-slug>-study-guide.md`.
+```powershell
+nlm query notebook <notebook_id> "Create a structured study guide for <topic> based on all video sources. Include: key concepts with definitions, common patterns and techniques, recommended learning order, and practical tips."
+```
 
-#### Option 5 — None
+---
 
-Skip generation. Report the notebook name and ID so the user can open it in NotebookLM directly.
+### Option 3 — Infographic
+
+```powershell
+nlm infographic create <notebook_id> --style sketch-note --wait
+```
+
+Then download:
+```powershell
+nlm download <notebook_id> --type infographic --output "<topic>-infographic.png"
+```
+
+---
+
+### Option 4 — Podcast (Audio Overview)
+
+```powershell
+nlm audio create <notebook_id> --wait
+```
+
+Then download:
+```powershell
+nlm download <notebook_id> --type audio --output "<topic>-podcast.mp3"
+```
+
+---
+
+### Option 5 — Nothing
+
+Report: "Notebook '<topic> Analysis' is ready. Open it at https://notebooklm.google.com"
+Notebook ID: `<notebook_id>`
 
 ---
 
 ## Notes
 
-- The MCP server exposes 35 NotebookLM tools. Disable `@notebooklm-mcp` when not in use to preserve context.
-- If infographic generation fails (rate limited), the notebook ID was already created — re-run just steps 5–6 later using the saved notebook ID.
-- MCP reference: https://github.com/jacob-bd/notebooklm-mcp-cli
+- Always verify `nlm notebook list` works before starting — confirms auth is valid
+- The `nlm query notebook` response is JSON; extract only the `answer` field to show the user
+- `yt-search.py` prints status to stderr and JSON to stdout — only stdout is the data
+- Sources take 30–60 seconds to index after adding; if query returns thin results, wait and retry

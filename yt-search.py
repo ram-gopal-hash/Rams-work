@@ -39,7 +39,7 @@ def duration_seconds(d: str) -> int:
 
 
 # Step 1: Search YouTube for trending videos on the given topic
-print(f"Searching YouTube for '{topic}' videos...")
+print(f"Searching YouTube for '{topic}' videos...", file=sys.stderr)
 query = urllib.parse.urlencode({
     "part": "snippet",
     "q": f"{topic} tutorial {datetime.now().year}",
