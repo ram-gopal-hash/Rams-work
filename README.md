@@ -1,12 +1,12 @@
 # Ram Gopal: working repository
 
-I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of the Indian banking entity from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds the tools I use day to day. Nothing in it is a demo built for this page: each piece came out of a real decision, and the data has been replaced with synthetic data so it can be shared.
+I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of Barclays Bank PLC India from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds the tools I use day to day. Nothing in it is a demo built for this page: each piece came out of a real decision, and the data has been replaced with synthetic data so it can be shared.
 
 There are two parts.
 
 ## 1. `skills/`: instructions that make a language model safe to rely on in finance
 
-Most of my analytical work now runs through Claude. Early on I found that the output was fluent and often wrong in ways that are expensive in my line of work: a debt schedule that does not close to zero, an IRR quoted where the cash flows have two sign changes and the IRR is undefined, a savings figure built on an average tariff when the tariff is telescopic, a confident sentence with an invented source behind it.
+Most of my analytical work now runs through Claude. Early on I found that the output was fluent and often wrong in ways that are expensive in my line of work: a debt schedule that does not close to zero, an IRR quoted for cash flows that have no single IRR, a savings figure built on an average tariff when the tariff is telescopic, a confident sentence with an invented source behind it.
 
 The skills in this folder are my response. Each one is a written procedure that the model loads before it works on a task of that type. The common thread is verification: recompute every headline number by a second route, test what the arithmetic must produce before trusting what it did produce, tag every claim as sourced, inferred or assumed, and refuse to fill a gap with generic content.
 
