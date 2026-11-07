@@ -1,6 +1,6 @@
 # Ram Gopal: working repository
 
-I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of the India entity from 2017 to 2023). Since 2024 I have co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds the tools I use day to day. Nothing in it is a demo built for this page: each piece came out of a real decision, and the data has been replaced with synthetic data so it can be shared.
+I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of the Indian banking entity from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds the tools I use day to day. Nothing in it is a demo built for this page: each piece came out of a real decision, and the data has been replaced with synthetic data so it can be shared.
 
 There are two parts.
 
