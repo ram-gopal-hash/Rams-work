@@ -44,6 +44,10 @@ The SQL data set has three faults planted in it (an inverter trip, soiling, a me
 
 I am not a software engineer. I write Python, R and SQL for analysis, and I have spent three decades accountable for large technology estates (core banking, card processing, payments, AML monitoring, the first cloud platform for payments in the Barclays group), but I have not built production systems myself.
 
+## Rights
+
+Shared for review. © 2026 Green2Green Enterprises Pvt Ltd. All rights reserved. No licence is granted to copy, modify or reuse this material; contact agr7116@gmail.com for any reuse.
+
 ## Contact
 
 Ram Gopal · [LinkedIn](https://www.linkedin.com/in/ram-gopal) · agr7116@gmail.com
