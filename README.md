@@ -1,6 +1,6 @@
 # Ram Gopal: working repository
 
-I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of Barclays Bank PLC India from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds the tools I use day to day. Nothing in it is a demo built for this page: each piece came out of a real decision, and the data has been replaced with synthetic data so it can be shared.
+I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of Barclays Bank PLC India from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds two kinds of material. The skills are the working procedures I use with Claude every day, with client and counterparty details removed. The analytics folder holds compact versions of analyses I run at Kaamyabi, rebuilt with Claude on synthetic data so they can be shared.
 
 There are two parts.
 
@@ -23,6 +23,8 @@ The skills in this folder are my response. Each one is a written procedure that 
 Client names, counterparties, file paths and personal details have been removed. Model defaults (hurdle rates, debt terms) are illustrative inputs, not offers.
 
 ## 2. `analytics/`: small, tested tools in Python, R and SQL
+
+These were written with Claude in November 2026 for this repository. Each one reproduces an analysis I run on real projects (bill review, quotation review, plant performance and billing reconciliation), using synthetic data in place of client data.
 
 | Folder | Language | Question it answers |
 |---|---|---|
