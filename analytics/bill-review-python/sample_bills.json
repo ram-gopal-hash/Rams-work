@@ -1,0 +1,105 @@
+{
+  "_note": "SYNTHETIC DATA. Slab structure is illustrative of a telescopic Indian domestic tariff; no real customer's bills are used.",
+  "tariff": {
+    "name": "Illustrative domestic telescopic tariff, bi-monthly billing",
+    "order_slabs": [
+      {
+        "lower": 0,
+        "upper": 400,
+        "rate": 4.8
+      },
+      {
+        "lower": 400,
+        "upper": 500,
+        "rate": 6.45
+      },
+      {
+        "lower": 500,
+        "upper": 600,
+        "rate": 8.55
+      },
+      {
+        "lower": 600,
+        "upper": 800,
+        "rate": 9.65
+      },
+      {
+        "lower": 800,
+        "upper": 1000,
+        "rate": 10.7
+      },
+      {
+        "lower": 1000,
+        "upper": null,
+        "rate": 11.8
+      }
+    ]
+  },
+  "bills": [
+    {
+      "period_start": "2025-11-05",
+      "period_end": "2026-01-04",
+      "days": 60,
+      "units": 1120,
+      "energy_charge": 9183.0,
+      "max_demand_kw": 3.1
+    },
+    {
+      "period_start": "2026-01-04",
+      "period_end": "2026-03-06",
+      "days": 61,
+      "units": 1180,
+      "energy_charge": 9912.0,
+      "max_demand_kw": 3.3
+    },
+    {
+      "period_start": "2026-03-06",
+      "period_end": "2026-05-05",
+      "days": 60,
+      "units": 1690,
+      "energy_charge": 16108.5,
+      "max_demand_kw": 4.6
+    },
+    {
+      "period_start": "2026-05-05",
+      "period_end": "2026-07-06",
+      "days": 62,
+      "units": 1860,
+      "energy_charge": 18174.0,
+      "max_demand_kw": 4.9
+    },
+    {
+      "period_start": "2026-07-06",
+      "period_end": "2026-09-07",
+      "days": 63,
+      "units": 1510,
+      "energy_charge": 13921.5,
+      "max_demand_kw": 4.0
+    },
+    {
+      "period_start": "2026-09-07",
+      "period_end": "2026-11-05",
+      "days": 59,
+      "units": 1290,
+      "energy_charge": 11248.5,
+      "max_demand_kw": 3.6
+    }
+  ],
+  "site": {
+    "sanctioned_kw": 5.0,
+    "phase": 3
+  },
+  "proposal": {
+    "pv_kwp": 5.0,
+    "system_cost_inr": 340000,
+    "subsidy_inr": 78000,
+    "yield_kwh_per_kwp_day": {
+      "low": 3.6,
+      "base": 4.0,
+      "high": 4.4
+    },
+    "degradation_per_year": 0.006,
+    "tariff_escalation_per_year": 0.03,
+    "life_years": 25
+  }
+}

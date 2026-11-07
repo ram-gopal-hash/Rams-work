@@ -1,0 +1,4 @@
+component,spec,qty,unit,quoted_inr
+solar_installed,5 kWp DCR TOPCon modules with mounting and BOS,5,kWp,415000
+hybrid_inverter,10 kW 3-phase hybrid inverter,1,unit,185000
+lfp_battery,LFP battery pack,10,kWh,330000

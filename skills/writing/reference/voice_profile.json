@@ -1,0 +1,51 @@
+{
+  "subject": "Ram Gopal",
+  "version": "1.1",
+  "updated": "2026-07-31",
+  "corpus_words": 3417,
+  "register_covered": "spoken-pitch narration (bullet form)",
+  "caveat": "Single-register sample. Targets are provisional for prose registers.",
+  "targets": {
+    "sent_cv":            {"low": 0.45, "high": 0.75},
+    "sent_mean":          {"low": 14.0, "high": 26.0},
+    "numbers_per_100w":   {"low": 2.0,  "high": 6.0},
+    "hedges_per_100w":    {"low": 0.0,  "high": 0.6},
+    "commas_per_100w":    {"low": 4.5,  "high": 11.0},
+    "parens_per_100w":    {"low": 0.15, "high": 1.60}
+  },
+  "provisional_targets": {
+    "_provenance": "NOT measured on Ram's corpus. Derived from the direction of the Economist July 2026 study (generated text under-punctuates, over-coordinates, over-nominalises). Bands are first estimates and need calibration against a real Ram sample before they are trusted. Lint applies them; treat breaches as prompts to look, not as faults.",
+    "semicolons_per_100w":      {"low": 0.0,  "high": 1.50},
+    "and_per_100w":             {"low": 0.0,  "high": 4.50},
+    "nominalisation_per_100w":  {"low": 0.0,  "high": 6.00},
+    "abstraction_per_100w":     {"low": 0.0,  "high": 2.50}
+  },
+  "measured": {
+    "unit_mean": 22.8, "unit_sd": 12.4, "unit_cv": 0.54,
+    "unit_min": 4, "unit_max": 83,
+    "short_pct": 11, "long_pct": 9,
+    "numbers_per_100w": 2.55,
+    "currency_units_per_100w": 1.64,
+    "first_person_per_100w": 4.27,
+    "contractions_per_100w": 1.11,
+    "commas_per_100w": 7.08,
+    "parens_per_100w": 0.50,
+    "emdash_per_100w": 0.38,
+    "hedges_per_100w": 0.06
+  },
+  "not_measured": [
+    "semicolons_per_100w",
+    "and_per_100w",
+    "nominalisation_per_100w",
+    "abstraction_per_100w",
+    "para_cv"
+  ],
+  "signature_markers": ["c. before approximations", "named actors with turnover figures", "arithmetic shown inline", "conversational aside inside formal content"],
+  "vocabulary_conflict": {
+    "status": "resolved: ban list wins (Ram, Jul 2026) - strip from all drafts including his own",
+    "note": "22 anti-ai-writing banned words appear in Ram's own unassisted writing.",
+    "load_bearing": ["seamless", "leverage"],
+    "counts": {"seamless": 4, "leverage": 3, "highlight": 2, "align": 2, "crucial": 1, "pivotal": 1, "unparalleled": 1, "innovative": 1, "foster": 1, "holistic": 1, "robust": 1, "empower": 1, "data-driven": 1, "predictive": 1, "integrated": 1, "valuable": 1}
+  },
+  "punctuation_note": "Commas and parens were already measured in v1.0 but sat outside targets, so lint never reported them. Promoted in v1.1 on the Economist finding that under-punctuation is now a stronger marker of generated prose than em-dash overuse. The low bound is the one that matters; the high bound only catches runaway subordination."
+}

@@ -1,0 +1,4 @@
+stage,pct,before_delivery
+Order and feasibility,0.10,TRUE
+Against proforma invoice,0.85,TRUE
+Post installation,0.05,FALSE

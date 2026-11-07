@@ -1,0 +1,4 @@
+component,unit,low_inr_per_unit,high_inr_per_unit,source_tag
+solar_installed,kWp,55000,85000,Likely - installer price guides
+hybrid_inverter,unit,95000,160000,Likely - distributor listings
+lfp_battery,kWh,20000,35000,Likely - battery price guides

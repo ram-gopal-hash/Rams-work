@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "client": "Client A (residential, illustrative)",
+    "file_stub": "ClientA_QuoteReview",
+    "version": "v1.0",
+    "review_date": "2026-10-08",
+    "vendor": "Vendor X (EPC)",
+    "decision": "Negotiate, do not sign as quoted",
+    "decision_basis": "Price ~11% above top of market range; 95% advance before delivery; inverter/battery make not locked"
+  },
+  "quote": {
+    "total_incl_gst": 1035466.04,
+    "line_items": [
+      {"item": "PV modules", "spec": "Premier 600-620 Wp DCR TOPCon bifacial", "qty": "4.96 kWp (8 nos)"},
+      {"item": "Hybrid inverter", "spec": "Solaryaan / Chint 10 kW 3-phase HV", "qty": "1"},
+      {"item": "Battery", "spec": "Chint 5 kWh HV LFP", "qty": "2 (10 kWh)"},
+      {"item": "Battery control unit", "spec": "BCU HV", "qty": "1"},
+      {"item": "Structure", "spec": "HDG, table 2x4", "qty": "1 set"},
+      {"item": "BOS, earthing, LA, cables, net meter", "spec": "per scope sheet", "qty": "lot"}
+    ],
+    "payment": [
+      {"stage": "Order / technical feasibility", "pct": 0.10, "stated_amount": 103546.60, "before_delivery": true},
+      {"stage": "Against proforma invoice", "pct": 0.85, "stated_amount": 880146.13, "before_delivery": true},
+      {"stage": "Post installation", "pct": 0.05, "stated_amount": 51773.30, "before_delivery": false}
+    ],
+    "subsidies": [
+      {"name": "PM Surya Ghar central CFA (3 kW+ cap)", "amount": 78000, "certainty": "Likely: eligible, no prior subsidy confirmed"},
+      {"name": "TN state top-up", "amount": 22000, "certainty": "Assumed: subject to Rs 50 cr fund"}
+    ]
+  },
+  "system": {
+    "pv_kwp": 4.96,
+    "inverter_kw": 10,
+    "phases": 3,
+    "max_single_phase_kva": 5,
+    "battery_kwh": 10,
+    "battery_usable_frac": 0.9
+  },
+  "tariff": {
+    "name": "TNPDCL LA1A domestic, bi-monthly, >500 units",
+    "source": "Back-solved from Jul-2026 and Sep-2026 bills; matches both to the rupee",
+    "slabs": [
+      {"lower": 0, "upper": 400, "rate": 4.95},
+      {"lower": 400, "upper": 500, "rate": 6.65},
+      {"lower": 500, "upper": 600, "rate": 8.80},
+      {"lower": 600, "upper": 800, "rate": 9.95},
+      {"lower": 800, "upper": 1000, "rate": 11.05},
+      {"lower": 1000, "upper": null, "rate": 12.15}
+    ]
+  },
+  "bills": [
+    {"period": "07-May-26 to 06-Jul-26", "days": 60, "units": 1860, "energy_charge": 18174.00,
+     "subsidy_line": -1371.00, "net_payable": 16803, "max_demand_kw": 4.52, "sanctioned_kw": 5.0},
+    {"period": "06-Jul-26 to 07-Sep-26", "days": 63, "units": 1509, "energy_charge": 13909.35,
+     "subsidy_line": -1160.40, "net_payable": 12749, "max_demand_kw": 3.50, "sanctioned_kw": 5.0}
+  ],
+  "benchmarks": [
+    {"component": "Solar, installed (incl. on-grid inverter)", "unit": "Rs/kWp", "qty": 4.96, "low": 55000, "high": 85000,
+     "source": "Vikram Solar 2026 note via quickestimate.co (installer blog) - Likely"},
+    {"component": "10 kW 3-phase hybrid inverter", "unit": "Rs/unit", "qty": 1, "low": 95000, "high": 160000,
+     "source": "qbitsenergy.com citing Lento India 2026 - Likely"},
+    {"component": "LFP battery", "unit": "Rs/kWh", "qty": 10, "low": 20000, "high": 35000,
+     "source": "quickestimate.co battery price guide 2026 - Likely"}
+  ],
+  "catalogue_check": {
+    "label": "Vendor's own 5 kW / 5 kW / ~10 kWh catalogue system",
+    "price": 625000,
+    "justified_uplift_low": 176000,
+    "justified_uplift_high": 290000,
+    "note": "Uplift = 5 kW extra inverter at Rs 18-28k/kW + up to 4.3 kWh extra battery at Rs 20-35k/kWh"
+  },
+  "load": {
+    "backup_load_kw_low": 2.5,
+    "backup_load_kw_high": 3.5,
+    "note": "Assumed: two 1.5 t inverter ACs + essentials; geyser excluded"
+  },
+  "economics": {
+    "gen_kwh_per_kwp_day": 4.0,
+    "existing_system_kwh_day": 4.0,
+    "cycles_per_year": 6,
+    "scenario_units": [1200, 1500, 1860],
+    "scenario_days": 60,
+    "cost_cases": [
+      {"label": "Quote, net of Rs 1L subsidy", "cost": 935466.04},
+      {"label": "Counter Rs 8.5L, net of subsidy", "cost": 750000},
+      {"label": "Quote, no subsidy", "cost": 1035466.04}
+    ]
+  },
+  "negotiation": {"counter": 850000, "walk_away": 920000},
+  "assumptions": [
+    {"tag": "Assumed", "item": "Generation 4.0 kWh/kWp/day (CAG Chennai range 4-6)", "change_if": "site shading or orientation known"},
+    {"tag": "Assumed", "item": "Existing 1 kW off-grid system supplies up to 4 kWh/day, lost on replacement", "change_if": "old system already failing"},
+    {"tag": "Likely", "item": "Net metering bills slabs on net import", "change_if": "TNPDCL confirms otherwise"},
+    {"tag": "Assumed", "item": "Counter Rs 8.5L / walk-away Rs 9.2L", "change_if": "competing quotes arrive"}
+  ]
+}
