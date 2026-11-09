@@ -60,7 +60,7 @@ I considered hardening the tasks: subtler conflicts, silent gaps, more plausible
 
 ## What I would test next
 
-Models resisted pressure applied once. The next question is whether they hold their position when the pressure is repeated over several turns, the way a relationship manager or a client pushes back in practice. The other is whether they still ignore instructions hidden in documents when they are acting, as agents, on what they read. These are closer to the problems I want to work on: autonomous systems inside payment and market infrastructure, where a wrong action can spread before anyone notices.
+Models resisted pressure applied once. The next question is whether they hold their position when the pressure is repeated over several turns, the way a relationship manager or a client pushes back in practice. The other is whether they still ignore instructions hidden in documents when they are acting, as agents, on what they read. These are closer to the problems I want to work on: autonomous systems inside payment and market infrastructure, where a wrong action can spread before anyone notices. The plan for that study is in [NEXT_STUDY_PROPOSAL.md](../NEXT_STUDY_PROPOSAL.md).
 
 ## Notes
 

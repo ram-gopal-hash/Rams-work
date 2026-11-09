@@ -44,6 +44,8 @@ The SQL data set has three faults planted in it (an inverter trip, soiling, a me
 
 [Verification under pressure](experiments/verification-under-pressure/) tested whether a written verification procedure makes Claude Sonnet 5.5 and Haiku 5.5 more reliable on financial analysis when the inputs are flawed or adversarial. Both models were already close to perfect without help, so the study stopped after the pilot. The [pilot report](experiments/verification-under-pressure/PILOT_REPORT.md) sets out what was tested, what was found, what went wrong in the task design, and what to test next. Code, tasks and every pilot reply are in the folder.
 
+The follow-on study, testing repeated pressure over several turns and hidden instructions acted on by agents, is proposed in [experiments/NEXT_STUDY_PROPOSAL.md](experiments/NEXT_STUDY_PROPOSAL.md).
+
 ## What I do not claim
 
 I am not a software engineer. I write Python, R and SQL for analysis, and I have spent three decades accountable for large technology estates (core banking, card processing, payments, AML monitoring, the first cloud platform for payments in the Barclays group), but I have not built production systems myself.
