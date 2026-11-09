@@ -2,8 +2,6 @@
 
 I spent 30 years running banking operations and technology (Citibank, Standard Chartered, Barclays, where I was CEO of Barclays Bank PLC India from 2017 to 2023). In 2024 I co-founded Kaamyabi, a distributed solar company that owns and operates plants and sells the power per unit. This repository holds two kinds of material. The skills are the working procedures I use with Claude every day, with client and counterparty details removed. The analytics folder holds compact versions of analyses I run at Kaamyabi, rebuilt with Claude on synthetic data so they can be shared.
 
-There are two parts.
-
 ## 1. `skills/`: instructions that make a language model safe to rely on in finance
 
 Most of my analytical work now runs through Claude. Early on I found that the output was fluent and often wrong in ways that are expensive in my line of work: a debt schedule that does not close to zero, an IRR quoted for cash flows that have no single IRR, a savings figure built on an average tariff when the tariff is telescopic, a confident sentence with an invented source behind it.
@@ -41,6 +39,10 @@ cd analytics/generation-sql     && python seed.py && sqlite3 solar.db < queries.
 ```
 
 The SQL data set has three faults planted in it (an inverter trip, soiling, a meter under-recording) and the tests check that the queries find each one and nothing else.
+
+## 3. `experiments/`: a pilot study
+
+[Verification under pressure](experiments/verification-under-pressure/) tested whether a written verification procedure makes Claude Sonnet 5.5 and Haiku 5.5 more reliable on financial analysis when the inputs are flawed or adversarial. Both models were already close to perfect without help, so the study stopped after the pilot. The [pilot report](experiments/verification-under-pressure/PILOT_REPORT.md) sets out what was tested, what was found, what went wrong in the task design, and what to test next. Code, tasks and every pilot reply are in the folder.
 
 ## What I do not claim
 
